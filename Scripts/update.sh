@@ -1,4 +1,5 @@
 #!/bin/zsh
+[ -n "${ZSH_VERSION:-}" ] || exec /bin/zsh "$0" "$@"
 set -uo pipefail
 
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"

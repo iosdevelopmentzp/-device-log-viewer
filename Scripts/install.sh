@@ -1,4 +1,5 @@
 #!/bin/zsh
+[ -n "${ZSH_VERSION:-}" ] || exec /bin/zsh "$0" "$@"
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,15 +9,18 @@ LIVE_TARGET="/Applications/LogReader.app"
 TARGET="${LOGREADER_INSTALL_TARGET:-$LIVE_TARGET}"
 DERIVED="$ROOT/DerivedData/Install"
 IDENTITY="${LOGREADER_SIGN_IDENTITY:-}"
-for IDENTITY_FILE in "$HOME/.config/logreader/sign-identity"; do
-    if [[ -z "$IDENTITY" && -f "$IDENTITY_FILE" ]]; then
-        IDENTITY="$(tr -d '[:space:]' < "$IDENTITY_FILE")"
-    fi
-done
+IDENTITY_FILE="$HOME/.config/logreader/sign-identity"
+if [[ -z "$IDENTITY" && -f "$IDENTITY_FILE" ]]; then
+    IDENTITY="$(tr -d '[:space:]' < "$IDENTITY_FILE")"
+fi
 
-if [[ ! -d "$UPDATE_SOURCE/.git" && "${ROOT:A}" != "${UPDATE_SOURCE:A}" ]]; then
-    mkdir -p "$LOGREADER_SUPPORT"
-    git clone --quiet --config core.hooksPath=/dev/null --branch main "$ROOT" "$UPDATE_SOURCE"
+if [[ "${ROOT:A}" != "${UPDATE_SOURCE:A}" ]]; then
+    if [[ -d "$UPDATE_SOURCE/.git" ]]; then
+        git -C "$UPDATE_SOURCE" remote set-url origin "$ROOT"
+    else
+        mkdir -p "$LOGREADER_SUPPORT"
+        git clone --quiet --config core.hooksPath=/dev/null --branch main "$ROOT" "$UPDATE_SOURCE"
+    fi
 fi
 
 write_status building

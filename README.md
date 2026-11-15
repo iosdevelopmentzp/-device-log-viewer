@@ -25,7 +25,7 @@ Without a profile, a file is read as JSON lines (one JSON object per line with `
 Install once by hand:
 
 1. Run `Scripts/install.sh` in this working copy. It builds Release, signs the app, quits the running copy, replaces `/Applications/LogReader.app` and opens it.
-2. The first run also makes a build clone of the `main` branch of this working copy in `~/Library/Application Support/LogReader/source`. The updater uses only this clone. Local edits, other branches and a running Xcode build in the working copy do not get in its way.
+2. The first run also makes a build clone of the `main` branch of this working copy in `~/Library/Application Support/LogReader/source`. The updater uses only this clone. Local edits, other branches and a running Xcode build in the working copy do not get in its way. A later run from another working copy points the clone at that copy.
 3. Signing: put the SHA-1 hash of an Apple Development certificate in `~/.config/logreader/sign-identity` (`security find-identity -v -p codesigning`), or pass `LOGREADER_SIGN_IDENTITY`. Without a certificate the app is signed ad hoc.
 4. The install also quits a copy that Xcode runs, because it has the same process name.
 

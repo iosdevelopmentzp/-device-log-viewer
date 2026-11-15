@@ -1,4 +1,5 @@
 #!/bin/zsh
+[ -n "${ZSH_VERSION:-}" ] || exec /bin/zsh "$0" "$@"
 set -euo pipefail
 
 pgrep -x LogReader >/dev/null || exit 0

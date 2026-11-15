@@ -1,4 +1,5 @@
 #!/bin/zsh
+[ -n "${ZSH_VERSION:-}" ] || exec /bin/zsh "$0" "$@"
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

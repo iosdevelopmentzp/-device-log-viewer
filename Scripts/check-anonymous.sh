@@ -1,4 +1,5 @@
 #!/bin/zsh
+[ -n "${ZSH_VERSION:-}" ] || exec /bin/zsh "$0" "$@"
 set -o pipefail
 cd "${0:A:h}/.."
 

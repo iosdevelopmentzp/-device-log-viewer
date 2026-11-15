@@ -337,7 +337,7 @@ Out of scope: deleting files on the device, devices other than iOS, a status bar
 
 The app is built from source on this Mac. `Scripts/install.sh` runs once by hand. After that the running app finds new commits in `main` and installs them on a click. This replaces the git hooks of `Scripts/auto-install.sh`.
 
-The source of updates is the local working copy, not a remote (`/Users/.../LogReader`, the folder `install.sh` was first run from). The updater never builds in the working copy: it has its own clone, so local edits, other branches and a running Xcode build do not get in the way.
+The source of updates is the local working copy, not a remote (`/Users/.../LogReader`, the folder `install.sh` was last run from). The updater never builds in the working copy: it has its own clone, so local edits, other branches and a running Xcode build do not get in the way.
 
 User-visible:
 
