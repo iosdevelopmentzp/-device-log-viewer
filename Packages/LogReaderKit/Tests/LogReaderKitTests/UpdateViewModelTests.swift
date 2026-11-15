@@ -113,6 +113,44 @@ struct UpdateViewModelTests {
         #expect(model.item?.kind == .running)
     }
 
+    @Test func settingsTextsWithoutAnInstalledBuild() {
+        let (model, _, _) = makeModel(installed: nil)
+
+        #expect(model.installedText == "Not installed with Scripts/install.sh")
+        #expect(model.statusText == "This build does not update itself")
+        #expect(model.canUpdate == false)
+    }
+
+    @Test func settingsTextsFollowTheChecks() async {
+        let (model, updater, store) = makeModel(installed: UpdateFixtures.installed)
+
+        store.start()
+        await Eventually.wait { model.statusText.hasPrefix("Up to date") }
+
+        #expect(model.installedText == "4bf0b5d, \(ShortDateTimeText.text(for: UpdateFixtures.startedAt))")
+        #expect(model.statusText == "Up to date · checked \(ShortDateTimeText.text(for: clock.now))")
+        #expect(model.canUpdate)
+
+        updater.setCommits(UpdateFixtures.commits)
+        model.checkNow()
+        await Eventually.wait { model.statusText == "2 new commits in main" }
+        store.stop()
+    }
+
+    @Test func updateNowStartsWithoutNewCommits() async {
+        let (model, updater, store) = makeModel(installed: UpdateFixtures.installed)
+        store.start()
+        await Eventually.wait { model.statusText.hasPrefix("Up to date") }
+
+        model.updateNow()
+        await Eventually.wait { updater.startCount == 1 }
+        store.stop()
+
+        #expect(model.statusText == "Getting changes · 0:00")
+        #expect(model.canUpdate == false)
+        #expect(model.canCheck == false)
+    }
+
     @Test func singleCommitTitle() async {
         let (model, updater, store) = makeModel(installed: UpdateFixtures.installed)
         updater.setCommits([UpdateFixtures.commits[0]])

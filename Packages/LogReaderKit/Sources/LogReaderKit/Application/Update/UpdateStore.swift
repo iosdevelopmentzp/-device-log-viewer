@@ -9,6 +9,8 @@ public final class UpdateStore {
     public private(set) var installed: InstalledBuild?
     public private(set) var now = Date.distantPast
     public private(set) var log = ""
+    public private(set) var lastCheckedAt: Date?
+    public private(set) var isChecking = false
 
     @ObservationIgnored private let updater: any AppUpdater
     @ObservationIgnored private let checkInterval: Duration
@@ -128,11 +130,14 @@ private extension UpdateStore {
     func check(isManual: Bool) async {
         guard let installed, state.isRunning == false else { return }
         let updater = updater
+        isChecking = true
         let commits = await Task.detached(priority: .utility) { () -> [UpdateCommit]? in
             guard updater.isUpdateRunning() == false else { return nil }
             return try? updater.check(installed: installed)
         }.value
+        isChecking = false
         guard let commits else { return }
+        lastCheckedAt = clock()
         apply(commits, isManual: isManual)
     }
 

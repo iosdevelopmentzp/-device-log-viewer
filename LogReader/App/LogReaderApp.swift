@@ -24,6 +24,7 @@ struct LogReaderApp: App {
         Settings {
             SettingsView()
                 .environment(dependencies.settingsViewModel)
+                .environment(dependencies.updateViewModel)
         }
     }
 }

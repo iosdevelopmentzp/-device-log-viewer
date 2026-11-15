@@ -16,6 +16,7 @@ struct SettingsView: View {
                 Text("Lists iPhones connected by USB or Wi-Fi. Only apps installed from Xcode show their log files.")
                     .foregroundStyle(.secondary)
             }
+            UpdateSettingsSection()
             Section("Appearance") {
                 Picker("Theme", selection: $settings.appearance) {
                     ForEach(settings.appearanceOptions, id: \.self) { Text($0.displayName).tag($0) }

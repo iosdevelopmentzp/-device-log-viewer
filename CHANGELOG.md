@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Settings → Updates: the installed build (short hash and install time), the update status with the time of the last check, and the buttons "Check Now" and "Update Now". "Update Now" there also works without new commits: it builds `main` again and installs it.
 - `Scripts/check-anonymous.sh`: fails when a file or the last commit message names an owner project, company, host or person (a denylist outside the repository at `~/.config/logreader/anonymity-denylist.txt`, plus built-in patterns for bundle IDs and hosts). `Scripts/build.sh` runs it first. The tests, the docs and the example profile use the sample vocabulary from `.claude/rules/anonymity.md`; the trailing example profile is now `docs/profiles/text-trailing.json` (`Example App`, `com.example`).
 
 ### Changed

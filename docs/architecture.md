@@ -98,7 +98,7 @@ Scripts/update.sh          lock → fetching → reset --hard origin/main → in
 UpdateStore                reads status.json every second while an update runs
 ```
 
-- `UpdateStore` (kit, `Application/Update`) is one per process. `AppDependencies` builds it and calls `start()`; every window shows the same `UpdateViewModel` through the SwiftUI environment, and the menu item LogReader → Check for Updates… calls the same model.
+- `UpdateStore` (kit, `Application/Update`) is one per process. `AppDependencies` builds it and calls `start()`; every window and the Settings window (section "Updates") show the same `UpdateViewModel` through the SwiftUI environment, and the menu item LogReader → Check for Updates… calls the same model.
 - At launch the store reads `installed.json`, `status.json` and the lock in one detached task. No `installed.json`, or a bundle that is not `/Applications/LogReader.app`, means a development build: no check, no button. `done` with the installed commit gives "Updated to <short hash>" and deletes `status.json`. `failed` gives the failed state. A running phase without a live process in `update.lock` means the update died.
 - The check runs at launch and then every 5 minutes, never while an update runs. A failed `fetch` keeps the current state. When `merge-base` fails (the installed commit is not in `main`), there is no update.
 - While an update runs, the store reads the lock and then `status.json` every second (in this order, so a script that writes its last status and exits is not taken for a dead one). For the first 10 seconds after "Update Now", a missing status or lock is not an error, because the detached script needs a moment to start.

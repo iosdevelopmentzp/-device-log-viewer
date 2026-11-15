@@ -62,7 +62,39 @@ public final class UpdateViewModel {
     }
 
     public var canCheck: Bool {
+        store.installed != nil && store.state.isRunning == false && store.isChecking == false
+    }
+
+    public var canUpdate: Bool {
         store.installed != nil && store.state.isRunning == false
+    }
+
+    public var installedText: String {
+        guard let installed = store.installed else { return "Not installed with Scripts/install.sh" }
+        return "\(installed.shortCommit), \(ShortDateTimeText.text(for: installed.installedAt))"
+    }
+
+    public var statusText: String {
+        guard store.installed != nil else { return "This build does not update itself" }
+        switch store.state {
+        case .running(let phase, let startedAt):
+            return "\(phase.displayName) · \(ElapsedTimeText.text(from: startedAt, to: store.now))"
+        case _ where store.isChecking:
+            return "Checking…"
+        case .available:
+            return commitsTitle
+        case .failed(let message):
+            return message
+        case .updated(let shortHash):
+            return "Updated to \(shortHash)"
+        case .idle, .upToDate:
+            return store.lastCheckedAt.map { "Up to date · checked \(ShortDateTimeText.text(for: $0))" } ?? "Not checked yet"
+        }
+    }
+
+    public var settingsFooter: String {
+        "LogReader checks the main branch of the working copy it was installed from at launch and every few minutes. "
+            + "Update Now builds main and installs it even when there are no new commits; the app closes for a few seconds."
     }
 
     public var commits: [UpdateCommit] {

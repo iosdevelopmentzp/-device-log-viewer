@@ -33,6 +33,7 @@ Install once by hand:
 
 1. The installed app checks at launch, then every 5 minutes, and when you choose LogReader → Check for Updates…. It runs `git fetch` in the build clone. The source of the fetch is `main` in the working copy, so a commit in `main` is enough; there is no remote.
 2. When `main` has commits that the installed build does not have, a button at the bottom of the sidebar shows "Update available · N". A click lists the commits (short hash and subject) and has "Update Now". A manual check with nothing new shows "Up to date" for 5 seconds.
+   Settings → Updates shows the installed build, the status and the time of the last check, with "Check Now" and "Update Now". There "Update Now" works even when `main` has no new commits: it builds `main` again and installs it.
 3. "Update Now" starts `Scripts/update.sh` from the build clone. It runs on its own, so it keeps running when the app quits. It gets the changes, builds, and installs with `Scripts/install.sh`. The button shows the step and the time: "Getting changes · 0:03", "Building · 1:20", "Installing · 2:05".
 4. The app closes only for the few seconds when the new bundle replaces the old one. Then it opens again and shows "Updated to <short hash>" until you close the message.
 5. When a step fails, the old app keeps running and the button shows "Update failed". A click shows the end of the log and "Try Again".
