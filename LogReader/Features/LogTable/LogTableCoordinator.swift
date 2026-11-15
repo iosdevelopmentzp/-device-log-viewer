@@ -9,12 +9,11 @@ final class LogTableCoordinator: NSObject {
     private weak var scrollView: NSScrollView?
     private(set) var presenter: LogTablePresenter?
     private var representable: LogTableView?
-    private(set) var configurator = LogCellConfigurator(
-        sheet: TextStyleSheet(fontSize: 12, wrapsByCharacter: false, fontFamily: .monospaced)
-    )
+    private(set) var configurator = LogCellConfigurator(sheet: TextStyleSheet(fontSize: 12, fontFamily: .monospaced))
     private var timeZoneMode: TimeZoneMode?
     private var expandsRows = false
     private var lineHeight: CGFloat = 16
+    private var expandedLineHeight: CGFloat = 16
     private var characterWidth: CGFloat = 7
     private var verticalInset: CGFloat = 3
     private let heightCache = LogTableRowHeightCache()
@@ -26,8 +25,7 @@ final class LogTableCoordinator: NSObject {
     private(set) var hiddenColumns: Set<LogTableColumn> = []
 
     private static let expandedMessageIdentifier = NSUserInterfaceItemIdentifier("message.expanded")
-    private static let maxExpandedLines = 400
-    private static let textContainerPadding: CGFloat = 12
+    private static let maxExpandedLines = 1000
 
     func install(tableView: LogNSTableView, scrollView: NSScrollView) {
         self.tableView = tableView
@@ -99,15 +97,16 @@ extension LogTableCoordinator: LogTableUpdateReceiver {
                 scrollToEnd()
             }
         case .refreshRows:
-            let visibleRows = tableView.rows(in: tableView.visibleRect)
+            let visibleRange = tableView.rows(in: tableView.visibleRect)
+            let visibleRows = IndexSet(integersIn: visibleRange.location..<(visibleRange.location + visibleRange.length))
             tableView.enumerateAvailableRowViews { rowView, row in
                 guard let rowView = rowView as? LogRowView, let item = presenter.row(at: row) else { return }
                 rowView.isBookmarked = item.isBookmarked
             }
-            tableView.reloadData(
-                forRowIndexes: IndexSet(integersIn: visibleRows.location..<(visibleRows.location + visibleRows.length)),
-                columnIndexes: IndexSet(integersIn: 0..<tableView.numberOfColumns)
-            )
+            if expandsRows {
+                tableView.noteHeightOfRows(withIndexesChanged: visibleRows)
+            }
+            tableView.reloadData(forRowIndexes: visibleRows, columnIndexes: IndexSet(integersIn: 0..<tableView.numberOfColumns))
         case .select(let row):
             isApplyingSelection = true
             tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
@@ -163,8 +162,9 @@ extension LogTableCoordinator: NSTableViewDelegate {
         guard let item = item(atRow: row) else { return nil }
         cell.verticalInset = verticalInset
         if isExpandedMessage {
-            guard let message = presenter?.expandedMessage(at: row) else { return nil }
-            configurator.configureExpanded(cell, message: message, maxLines: Self.maxExpandedLines)
+            let columns = messageColumns(atRow: row)
+            guard let message = presenter?.expandedMessage(at: row, columns: columns, maxLines: Self.maxExpandedLines) else { return nil }
+            configurator.configureExpanded(cell, item: message, lineHeight: expandedLineHeight)
         } else {
             configurator.configure(cell, column: column, item: item)
         }
@@ -178,10 +178,10 @@ extension LogTableCoordinator: NSTableViewDelegate {
         guard expandsRows, let presenter else { return tableView.rowHeight }
         return heightCache.height(
             row: row,
+            columns: messageColumns(atRow: row),
             presenter: presenter,
-            lineHeight: lineHeight,
+            lineHeight: expandedLineHeight,
             verticalInset: verticalInset,
-            columns: messageColumns,
             maxLines: Self.maxExpandedLines
         )
     }
@@ -229,9 +229,10 @@ extension LogTableCoordinator: NSTableViewDelegate {
 
 private extension LogTableCoordinator {
 
-    var messageColumns: Int {
-        guard let column = tableView?.tableColumn(withIdentifier: Self.messageIdentifier), characterWidth > 0 else { return 80 }
-        return max(10, Int((column.width - LogCellView.horizontalInset * 2 - Self.textContainerPadding) / characterWidth))
+    func messageColumns(atRow row: Int) -> Int {
+        guard let column = tableView?.tableColumn(withIdentifier: Self.messageIdentifier), let presenter, characterWidth > 0 else { return 80 }
+        let inset = LogCellView.horizontalInset * 2 + configurator.groupInset(for: presenter.groupIndent(atRow: row))
+        return max(10, Int((column.width - inset) / characterWidth))
     }
 
     var isAtBottom: Bool {
@@ -270,12 +271,11 @@ private extension LogTableCoordinator {
         self.timeZoneMode = timeZoneMode
         self.expandsRows = expandsRows
         self.verticalInset = verticalInset
-        configurator = LogCellConfigurator(
-            sheet: TextStyleSheet(fontSize: fontSize, wrapsByCharacter: false, fontFamily: fontFamily)
-        )
-        let font = configurator.sheet.font
-        lineHeight = ceil(NSLayoutManager().defaultLineHeight(for: font))
-        characterWidth = ("0" as NSString).size(withAttributes: [.font: font]).width
+        configurator = LogCellConfigurator(sheet: TextStyleSheet(fontSize: fontSize, fontFamily: fontFamily))
+        lineHeight = ceil(NSLayoutManager().defaultLineHeight(for: configurator.sheet.font))
+        let expandedFont = configurator.expandedSheet.font
+        expandedLineHeight = ceil(NSLayoutManager().defaultLineHeight(for: expandedFont))
+        characterWidth = ("0" as NSString).size(withAttributes: [.font: expandedFont]).width
         tableView.rowHeight = lineHeight + verticalInset * 2
         heightCache.removeAll()
         reloadKeepingPosition()

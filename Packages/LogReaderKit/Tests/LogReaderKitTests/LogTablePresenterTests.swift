@@ -103,22 +103,29 @@ struct LogTablePresenterTests {
         let presenter = makePresenter(harness.session)
         presenter.start()
 
-        let message = presenter.expandedMessage(at: 1)
+        let message = presenter.expandedMessage(at: 1, columns: 200, maxLines: 400)
 
-        #expect(message?.string == "Payment failed\n  reason: timeout")
-        #expect(message?.spans.map(\.style) == [.message(.red), .detail])
+        #expect(message?.text.string == "Payment failed\n  reason: timeout")
+        #expect(message?.text.spans.map(\.style) == [.message(.red), .detail])
+        #expect(message?.lineRanges == [NSRange(location: 0, length: 14), NSRange(location: 15, length: 17)])
         #expect(presenter.lineCount(row: 1, columns: 200, maxLines: 400) == 2)
         #expect(presenter.lineCount(row: 1, columns: 10, maxLines: 3) == 3)
         #expect(presenter.lineCount(row: 9, columns: 10, maxLines: 3) == 1)
     }
 
-    @Test func expandedMessageIsCut() async {
+    @Test func expandedMessageEndsWithTheNumberOfHiddenLines() async {
         var harness = SessionHarness(bookmarks: [], debounce: .milliseconds(1))
         let body = String(repeating: "x", count: 50_000)
         await harness.start(with: ["Big INF [default] [Misc:1] 2026-10-07 22:18:54.000\n  data: \(body)\n"])
         let presenter = makePresenter(harness.session)
 
-        #expect(presenter.expandedMessage(at: 0)?.string.count == 40_000)
+        let message = presenter.expandedMessage(at: 0, columns: 100, maxLines: 10)
+
+        #expect(message?.lineRanges.count == 10)
+        #expect(message?.lineRanges[8] == NSRange(location: 704, length: 100))
+        #expect(message?.text.string.hasSuffix("x\n… 493 more lines. The inspector shows the whole entry.") == true)
+        #expect(message?.text.spans.last == StyledText.Span(range: NSRange(location: 805, length: 54), style: .preview))
+        #expect(presenter.lineCount(row: 0, columns: 100, maxLines: 10) == 10)
     }
 
     @Test func headerTitlesAndToolTips() async {
@@ -193,7 +200,9 @@ struct LogTablePresenterTests {
         #expect(presenter.recordIndex(atRow: 0) == 0)
         #expect(presenter.recordIndex(atRow: 1) == 3)
         #expect(presenter.lineCount(row: 1, columns: 200, maxLines: 10) == 1)
-        #expect(presenter.expandedMessage(at: 1)?.string == "Other")
+        #expect(presenter.expandedMessage(at: 1, columns: 200, maxLines: 10)?.text.string == "Other")
+        #expect(presenter.groupIndent(atRow: 0) == .group(badge: "×3"))
+        #expect(presenter.groupIndent(atRow: 1) == .none)
 
         presenter.setCollapsesRepeats(false)
 
@@ -219,6 +228,7 @@ struct LogTablePresenterTests {
         #expect(presenter.selectedRows == [2])
         #expect(presenter.row(at: 2)?.isGroupMember == true)
         #expect(presenter.row(at: 0)?.isGroupExpanded == true)
+        #expect(presenter.groupIndent(atRow: 2) == .member)
     }
 
     @Test func collapsingTranslatesInsertedRows() async {

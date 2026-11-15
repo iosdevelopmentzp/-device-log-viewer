@@ -5,28 +5,17 @@ import SwiftUI
 struct TextStyleSheet {
 
     let fontSize: Double
-    let wrapsByCharacter: Bool
     let fontFamily: FontFamily
 
     var font: NSFont { LogFonts.text(size: fontSize, weight: .regular, family: fontFamily) }
 
     var baseAttributes: [NSAttributedString.Key: Any] {
-        var attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: LogColors.primaryText]
-        if wrapsByCharacter {
-            attributes[.paragraphStyle] = Self.charWrappingStyle
-        }
-        return attributes
+        [.font: font, .foregroundColor: LogColors.primaryText]
     }
 
     static var linkAttributes: [NSAttributedString.Key: Any] {
         [.foregroundColor: LogColors.link, .underlineStyle: NSUnderlineStyle.single.rawValue]
     }
-
-    private static let charWrappingStyle: NSParagraphStyle = {
-        let style = NSMutableParagraphStyle()
-        style.lineBreakMode = .byCharWrapping
-        return style
-    }()
 
     func attributes(for style: TextStyle) -> [NSAttributedString.Key: Any] {
         switch style {

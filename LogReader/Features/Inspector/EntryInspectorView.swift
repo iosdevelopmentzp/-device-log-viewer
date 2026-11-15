@@ -26,7 +26,7 @@ struct EntryInspectorView: View {
 private extension EntryInspectorView {
 
     var sheet: TextStyleSheet {
-        TextStyleSheet(fontSize: settings.fontSize, wrapsByCharacter: false, fontFamily: settings.fontFamily)
+        TextStyleSheet(fontSize: settings.fontSize, fontFamily: settings.fontFamily)
     }
 
     @ViewBuilder

@@ -30,7 +30,7 @@ What is good and stays: the byte-based core, the `LogFileTailer`, the `NSTableVi
 Packages/LogReaderCore/Sources/LogReaderCore/
   Domain/        LogLevel, LogRecord, LogBatch, LogFileFormat, FacetColumn
   Parsing/       ByteScan, LogIndexer, LogRecordBuilder, LogHeaderLine, LogHeaderLineParser,
-                 LogEntryDetails, LogTextMetrics
+                 LogEntryDetails, LogEntryText, LogTextMetrics, WrappedLineCounter
   Storage/       LogContent
   Tailing/       LogSource, LogSourceEvent, LogFileTailer
   Filtering/     LogFilter, LogFilterEngine, FacetFilter, FacetSelection, FacetCounts,
@@ -372,7 +372,7 @@ public struct StatusBarItem: Sendable, Equatable {
 - `DeltaTextFormatter.text(from:to:)`: same output as today.
 - `FileSizeText.file(_ bytes: Int64)`, `FileSizeText.memory(_ bytes: Int64)`.
 - `LogFileTitle.title(for url:)` (drops `log-`). The shareable name lives in `FileActions.shareableName(for:)`; do not duplicate it.
-- `MessageTextBuilder(highlight: TextQuery?)`: `rowMessage(for record:) -> StyledText` (message span with level, preview span, match spans), `expandedMessage(text:messageLength:level:) -> StyledText`.
+- `MessageTextBuilder(highlight: TextQuery?)`: `rowMessage(for record:) -> StyledText` (message span with level, preview span, match spans), `expandedMessage(message:body:style:columns:maxLines:) -> ExpandedMessageItem` (styled text plus the range of every drawn line).
 - `EntryTextLayoutBuilder(globalQuery:localQuery:)`: `layout(for details: LogEntryDetails) -> EntryTextLayout` with `title`, `fieldKey`, `fieldValue` spans, then global and local match spans.
 - `StatusBarItemBuilder.item(for session: LogSession) -> StatusBarItem`.
 - Display extensions: `Appearance.displayName`, `Appearance.symbolName`; `TimeZoneMode.displayName`; `SearchMode.displayName`, `SearchMode.prompt`; `SearchScope.displayName` (for one option) and `SearchScope.allOptions` stays in the core; `FacetColumn.displayName`.
@@ -385,7 +385,7 @@ All `@MainActor @Observable public final class`, `init` assigns only.
 - `MainViewModel(workspace:settings:fileDialogs:copyEntries:)`: conforms to `WorkspaceObserver`. Owns `sidebar: SidebarViewModel`, `sessionViews: SessionViewModels?`, `isInspectorPresented`, `isGoToEntryPresented`, `searchFocusRequest`, `inspectorSearchFocusRequest`. Computed `title`, `subtitle`, `hasSession`, `entryCount`, `status: StatusBarItem?`, `followSymbolName`. Methods `start`, `stop`, `openFile`, `openDropped(_:)`, `restartDiscovery`, `goToEntry(number:)`, `requestSearchFocus`, `requestInspectorSearchFocus`, `toggleInspector`, `showInspector`, `jumpToEnd`, `copyVisible`, `copySelection`, `findNext`, `findPrevious`, `toggleBookmark`, `nextBookmark`, `previousBookmark`, `toggleBookmarksOnly`, `clearFilters`, `canFindInEntry`, `canFindNext`.
 - `SessionViewModels` (struct): `session`, `table`, `search`, `inspector`, `filterMenu`. Built by `MainViewModel` when the workspace session changes.
 - `SidebarViewModel(workspace:fileActions:)`: `selectedFileID` (get from the session url, set opens), `devices: [SidebarDeviceItem]`, `openedFiles: [SidebarFileItem]`, `isEmpty`, `isExpanded(appID:)`, `setExpanded(_:appID:)`, `open(_:)`, `removeFromList(_:)`, and the file and device actions that forward to `FileActions`.
-- `LogTablePresenter(session:settings:copyEntries:)`: conforms to `LogRowsObserver`, holds `weak var receiver: (any LogTableUpdateReceiver)?`. `rowCount`, `row(at:) -> LogRowItem?`, `expandedMessage(at:) -> StyledText?`, `lineCount(row:columns:maxLines:)`, `isFacetActive(_:)`, `headerTitle(for:)`, `headerToolTip(for:)`, `facetFilterViewModel(for:)`, `contextMenu(forRows:showDetails:) -> [ContextMenuEntry]`, `selectionDidChange(rows:)`, `setFollowing(_:)`, `isFollowing`, `copySelection()`. `LogTableUpdateReceiver.apply(_ event: LogRowsEvent)`.
+- `LogTablePresenter(session:settings:copyEntries:)`: conforms to `LogRowsObserver`, holds `weak var receiver: (any LogTableUpdateReceiver)?`. `rowCount`, `row(at:) -> LogRowItem?`, `expandedMessage(at:columns:maxLines:) -> ExpandedMessageItem?`, `lineCount(row:columns:maxLines:)`, `groupIndent(atRow:) -> GroupIndent`, `isFacetActive(_:)`, `headerTitle(for:)`, `headerToolTip(for:)`, `facetFilterViewModel(for:)`, `contextMenu(forRows:showDetails:) -> [ContextMenuEntry]`, `selectionDidChange(rows:)`, `setFollowing(_:)`, `isFollowing`, `copySelection()`. `LogTableUpdateReceiver.apply(_ event: LogRowsEvent)`.
 - `SearchViewModel(session:settings:)`: `text` (get and set), `mode`, `modeOptions`, `scopeOptions`, `isScopeDefault`, `scopeSummary`, `prompt`, `showsFindControls`, `positionText`, `canNavigate`, `findNext`, `findPrevious`, `clear`, `toggleScope(_:)`, `useMessageScope`, `useAllScopes`. Writing the scope also writes `settings.searchScope`.
 - `FilterMenuViewModel(session:)`: `levelOptions`, `toggle(_ level:)`, `showErrorsAndFaults`, `showWarningsAndAbove`, `showAllLevels`, `isAllLevels`, `bookmarksOnly` (get and set), `hasActiveFilters`, `clearFilters`.
 - `FacetFilterViewModel(session:column:)`: `title`, `hint`, `isActive`, `showsSearchField`, `values(matching query:) -> [FacetValueItem]`, `toggle(_:)`, `only(_:)`, `clear()`.
@@ -431,7 +431,7 @@ final class AppDependencies {
 - `LogColors`: unchanged, moved.
 - `LogFonts`: `static func monospaced(_ size: Double, weight: NSFont.Weight) -> NSFont`.
 - `LevelColors`: `text(for level: LogLevel?) -> NSColor`, `message(for:)`, `rowTint(for:)`. These are the only places that switch over `LogLevel` in the app.
-- `TextStyleSheet(fontSize:)`: `attributes(for style: TextStyle) -> [NSAttributedString.Key: Any]`, `baseAttributes`, `wrapsByCharacter: Bool` variant for expanded rows.
+- `TextStyleSheet(fontSize:)`: `attributes(for style: TextStyle) -> [NSAttributedString.Key: Any]`, `baseAttributes`.
 - `StyledText+NSAttributedString`: `extension NSAttributedString { convenience init(_ text: StyledText, sheet: TextStyleSheet) }`. Applies spans in order; match spans set background and `LogColors.matchText`.
 
 ### 6.4 Features

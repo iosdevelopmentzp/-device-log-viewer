@@ -36,7 +36,7 @@ view (SwiftUI or AppKit, app target)
 - `NSViewRepresentable` views are thin: `makeNSView` builds the AppKit view, `updateNSView` forwards values to a coordinator, `dismantleNSView` detaches.
 - The coordinator asks the presenter for `rowCount`, `row(at:)`, `lineCount(row:columns:maxLines:)`. It never reads a session.
 - Row updates must reach `NSTableView` synchronously, so `LogSession` → `LogRowsObserver` → `LogTablePresenter` → `LogTableUpdateReceiver` → coordinator is a chain of weak protocol references, not closures and not `AsyncStream`.
-- Row height has a fixed value in normal mode. Expand Rows uses `LogTextMetrics` through the presenter. No Auto Layout row sizing (ADR 0001).
+- Row height has a fixed value in normal mode. Expand Rows uses `LogEntryText` through the presenter, and the cell draws the lines from `ExpandedMessageItem.lineRanges`. No Auto Layout row sizing (ADR 0001).
 - Every row view and cell view comes from `makeView(withIdentifier:owner:)` and has its identifier set. A view created per row is never released: AppKit keeps it in the reuse queue and nothing takes it out.
 
 ## Settings

@@ -16,11 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Saved presets, recent filters, recent searches, the search scope and the hidden columns keep working: old values map to the new ids (`debug` … `fault`, `tags`, `category`, `source`). The single "Project folder" setting becomes the first entry of Settings → Projects.
 - Export as Log keeps the framing of the profile, so an exported file opens with the same profile again.
 - Performance: the parser is compiled once per profile and works on bytes as before; the PERF test runs for every grammar kind (see `docs/architecture.md`).
+- Expand Rows draws only the lines that are on screen, so scrolling past a long entry no longer lags (a 40 000-character entry took 11–43 ms per frame, because the whole text was laid out again on every redraw). The expanded message always uses the monospaced font. A row shows up to 1000 lines; a longer entry ends with "… N more lines. The inspector shows the whole entry." Tabs show as four spaces, and a lone carriage return starts a new line.
 
 ### Removed
 - The bundle ID prefix setting (it comes from the profile) and the fixed `log-*.txt` file pattern.
 
 ### Fixed
+- Expand Rows cut long entries after 40 000 characters and left empty space below them: the row height came from the raw bytes of the entry, but the row showed the message and the fields without the header metadata. Now the height and the drawn lines come from the same text. JSON entries had the same problem the other way round: an escaped `\n` in a message is a new line on screen but not in the file, so their text ran past the row.
+- Expand Rows: the text of a grouped entry (Collapse Repeated Entries) no longer runs past the right edge; the width of the badge and the indent of a member are taken into account.
 - The zsh scripts in `Scripts/` work when started with `sh` or `bash`: they start again in zsh. Before, `sh Scripts/install.sh` stopped with "unbound variable" or "print: command not found".
 - `Scripts/install.sh` points an existing build clone at the working copy it runs from, so updates come from the folder of the last install and not from an older one.
 

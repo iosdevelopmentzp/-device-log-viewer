@@ -25,18 +25,24 @@ public struct MessageTextBuilder: Sendable {
         return styled(record.message + preview, baseSpans: spans)
     }
 
-    public func expandedMessage(text: String, messageLength: Int, style: LevelStyle?) -> StyledText {
-        let messageEnd = text.index(text.startIndex, offsetBy: min(messageLength, text.count))
-        let messageRange = NSRange(text.startIndex..<messageEnd, in: text)
-        let detailRange = NSRange(messageEnd..<text.endIndex, in: text)
-        var spans = [StyledText.Span]()
-        if messageRange.length > 0 {
-            spans.append(StyledText.Span(range: messageRange, style: .message(style)))
+    public func expandedMessage(message: String, body: String, style: LevelStyle?, columns: Int, maxLines: Int) -> ExpandedMessageItem {
+        let text = Self.expandedText(message: message, body: body)
+        let lineCount = LogTextMetrics.wrappedLineCount(text.string, columns: columns, maxLines: .max)
+        guard lineCount > maxLines else {
+            return ExpandedMessageItem(
+                text: expandedStyled(text.string, messageLength: text.messageLength, style: style),
+                lineRanges: LogTextMetrics.wrappedLineRanges(ofDrawableText: text.string, columns: columns, maxLines: maxLines)
+            )
         }
-        if detailRange.length > 0 {
-            spans.append(StyledText.Span(range: detailRange, style: .detail))
-        }
-        return styled(text, baseSpans: spans)
+        let ranges = LogTextMetrics.wrappedLineRanges(ofDrawableText: text.string, columns: columns, maxLines: maxLines - 1)
+        let shownEnd = String.Index(utf16Offset: ranges.last.map(NSMaxRange) ?? 0, in: text.string)
+        let shown = expandedStyled(String(text.string[..<shownEnd]), messageLength: text.messageLength, style: style)
+        let marker = Self.moreLinesText(lineCount - ranges.count)
+        let markerRange = NSRange(location: shown.string.utf16.count + 1, length: marker.utf16.count)
+        return ExpandedMessageItem(
+            text: StyledText(string: shown.string + "\n" + marker, spans: shown.spans + [StyledText.Span(range: markerRange, style: .preview)]),
+            lineRanges: ranges + [markerRange]
+        )
     }
 
     public static func messageStyle(of record: LogRecord, in profile: LogProfile) -> LevelStyle? {
@@ -48,6 +54,29 @@ public struct MessageTextBuilder: Sendable {
 // MARK: - Private
 
 private extension MessageTextBuilder {
+
+    static func expandedText(message: String, body: String) -> (string: String, messageLength: Int) {
+        let drawableMessage = LogTextMetrics.drawableText(message)
+        guard body.isEmpty == false else { return (drawableMessage, drawableMessage.utf16.count) }
+        return (LogTextMetrics.drawableText(message + "\n" + body), drawableMessage.utf16.count)
+    }
+
+    static func moreLinesText(_ count: Int) -> String {
+        "… \(GroupedNumberText.text(count)) more lines. The inspector shows the whole entry."
+    }
+
+    func expandedStyled(_ string: String, messageLength: Int, style: LevelStyle?) -> StyledText {
+        let length = string.utf16.count
+        let messageEnd = min(messageLength, length)
+        var spans = [StyledText.Span]()
+        if messageEnd > 0 {
+            spans.append(StyledText.Span(range: NSRange(location: 0, length: messageEnd), style: .message(style)))
+        }
+        if length > messageEnd {
+            spans.append(StyledText.Span(range: NSRange(location: messageEnd, length: length - messageEnd), style: .detail))
+        }
+        return styled(string, baseSpans: spans)
+    }
 
     func styled(_ string: String, baseSpans: [StyledText.Span]) -> StyledText {
         let matches = HighlightRanges.ranges(of: highlight, in: string).map { range in

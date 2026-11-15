@@ -28,19 +28,7 @@ public struct LogEntryDetails: Sendable, Equatable {
     }
 
     public static func messageAndBody(_ text: String, record: LogRecord, profile: LogProfile) -> (message: String, body: String) {
-        if let entry = jsonEntry(text, record: record, profile: profile) {
-            let body = entry.fields.map { "\(String(repeating: " ", count: profile.fields.indent))\($0.key): \($0.value)" }
-            return (entry.message, body.joined(separator: "\n"))
-        }
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
-        guard record.isStructured, let header = header(in: lines, profile: profile) else {
-            return (lines.first.map(String.init) ?? "", lines.dropFirst().joined(separator: "\n"))
-        }
-        var messageLines = lines[..<header.index].map(String.init)
-        let headerLine = Array(lines[header.index].utf8)
-        let messageBytes = headerLine[header.messageRange.clamped(to: 0..<headerLine.count)]
-        messageLines.append(String(decoding: messageBytes, as: UTF8.self))
-        return (messageLines.joined(separator: "\n"), lines[(header.index + 1)...].joined(separator: "\n"))
+        Array(text.utf8).withUnsafeBytes { LogEntryText(profile: profile).messageAndBody($0, record: record) }
     }
 
     static func prettyJSON(_ value: String) -> String? {
@@ -68,18 +56,6 @@ private extension LogEntryDetails {
         return bytes.withUnsafeMutableBytes { buffer in
             parser.parse(UnsafeRawBufferPointer(buffer), range: 0..<buffer.count, maxFields: Int.max)
         }
-    }
-
-    static func header(in lines: [Substring], profile: LogProfile) -> (index: Int, messageRange: Range<Int>)? {
-        let grammar = LogEntryGrammar(profile: profile)
-        for (index, line) in lines.prefix(64).enumerated() {
-            var bytes = Array(line.utf8)
-            let parsed = bytes.withUnsafeMutableBytes { buffer in
-                grammar.headerLine(UnsafeRawBufferPointer(buffer), lineStart: 0, lineEnd: buffer.count)
-            }
-            if let parsed { return (index, parsed.messageRange) }
-        }
-        return nil
     }
 
     static func parseFields(_ lines: [Substring], indent: Int) -> [Field] {

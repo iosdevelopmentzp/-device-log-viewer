@@ -5,8 +5,8 @@ struct LogCellConfigurator {
 
     let sheet: TextStyleSheet
 
-    private var expandedSheet: TextStyleSheet {
-        TextStyleSheet(fontSize: sheet.fontSize, wrapsByCharacter: true, fontFamily: sheet.fontFamily)
+    var expandedSheet: TextStyleSheet {
+        TextStyleSheet(fontSize: sheet.fontSize, fontFamily: .monospaced)
     }
 
     func configure(_ cell: LogCellView, column: LogTableColumnItem, item: LogRowItem) {
@@ -34,9 +34,7 @@ struct LogCellConfigurator {
     }
 
     func configureGroup(_ cell: LogCellView, item: LogRowItem, onToggle: @escaping (LogCellView) -> Void) {
-        let badge = item.repeatCount == nil
-            ? nil
-            : NSAttributedString(string: item.repeatCountText, attributes: sheet.attributes(for: .badge))
+        let badge = item.repeatCount == nil ? nil : badgeText(item.repeatCountText)
         cell.setGroup(badge: badge, isExpanded: item.isGroupExpanded, isMember: item.isGroupMember)
         cell.onToggle = { [weak cell] in
             guard let cell else { return }
@@ -44,8 +42,25 @@ struct LogCellConfigurator {
         }
     }
 
-    func configureExpanded(_ cell: LogCellView, message: StyledText, maxLines: Int) {
-        cell.label.maximumNumberOfLines = maxLines
-        cell.setAttributedText(NSAttributedString(message, sheet: expandedSheet))
+    func configureExpanded(_ cell: LogCellView, item: ExpandedMessageItem, lineHeight: CGFloat) {
+        let sheet = expandedSheet
+        cell.setExpandedText(NSAttributedString(item.text, sheet: sheet), lineRanges: item.lineRanges, lineHeight: lineHeight, font: sheet.font)
+    }
+
+    func groupInset(for indent: GroupIndent) -> CGFloat {
+        switch indent {
+        case .none: 0
+        case .member: LogCellView.memberIndent
+        case .group(let badge): LogCellView.groupInset(badge: badgeText(badge))
+        }
+    }
+}
+
+// MARK: - Private
+
+private extension LogCellConfigurator {
+
+    func badgeText(_ text: String) -> NSAttributedString {
+        NSAttributedString(string: text, attributes: sheet.attributes(for: .badge))
     }
 }

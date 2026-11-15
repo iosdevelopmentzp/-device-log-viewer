@@ -46,7 +46,7 @@ Three modules. Direction: app → kit → core. See `docs/adr/0004-layered-archi
 |---|---|
 | `Packages/LogReaderCore/.../Profile` | `LogProfile` and its rules: `DiscoveryRule`, `FramingRule`, `EntryRule`, `EntryToken`, `TimestampRule`, `LevelRule`, `AttributeRule`, `FieldsRule`, `SourceRule`; `LogProfile.jsonLines` (built-in) |
 | `.../Domain` | `LogLevel` (index into the profile levels), `LogRecord` (+ `AttributeValue`), `LogBatch`, `LogFileFormat`, `FacetColumn` |
-| `.../Parsing` | `LogIndexer` (bytes → batches), `LogRecordBuilder`, `LogEntryGrammar` (`TokenGrammar`, `RegexGrammar`, `JSONEntryParser`), `TimeValueParser`, `LevelMatcher`, `LogEntryDetails`, `LogTextMetrics` |
+| `.../Parsing` | `LogIndexer` (bytes → batches), `LogRecordBuilder`, `LogEntryGrammar` (`TokenGrammar`, `RegexGrammar`, `JSONEntryParser`), `TimeValueParser`, `LevelMatcher`, `LogEntryDetails`, `LogEntryText` (message and fields of an entry, wrapped line count), `LogTextMetrics` |
 | `.../Storage` | `LogContent` (chunks of bytes + records) |
 | `.../Tailing` | `LogSource` protocol, `LogFileTailer` (live read of a growing file) |
 | `.../Filtering` | `LogFilter`, `LogFilterEngine`, `FacetFilter`, `FacetSelection`, `FacetCounts`, `TextQuery` |

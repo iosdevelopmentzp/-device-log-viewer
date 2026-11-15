@@ -49,22 +49,48 @@ struct MessageTextBuilderTests {
     @Test func expandedMessageSplitsMessageAndDetail() {
         let builder = MessageTextBuilder(highlight: [TextQuery("value")].compactMap { $0 })
 
-        let text = builder.expandedMessage(text: "Hello\nkey: value", messageLength: 5, style: .orange)
+        let item = builder.expandedMessage(message: "Hello", body: "key: value", style: .orange, columns: 80, maxLines: 10)
 
-        #expect(text.string == "Hello\nkey: value")
-        #expect(text.spans == [
+        #expect(item.text.string == "Hello\nkey: value")
+        #expect(item.text.spans == [
             StyledText.Span(range: NSRange(location: 0, length: 5), style: .message(.orange)),
             StyledText.Span(range: NSRange(location: 5, length: 11), style: .detail),
             StyledText.Span(range: NSRange(location: 11, length: 5), style: .globalMatch)
         ])
+        #expect(item.lineRanges == [NSRange(location: 0, length: 5), NSRange(location: 6, length: 10)])
     }
 
     @Test func expandedMessageWithoutBodyHasNoDetailSpan() {
         let builder = MessageTextBuilder(highlight: [])
 
-        let text = builder.expandedMessage(text: "Hello", messageLength: 5, style: nil)
+        let item = builder.expandedMessage(message: "Hello", body: "", style: nil, columns: 80, maxLines: 10)
 
-        #expect(text.spans == [StyledText.Span(range: NSRange(location: 0, length: 5), style: .message(nil))])
+        #expect(item.text.spans == [StyledText.Span(range: NSRange(location: 0, length: 5), style: .message(nil))])
+        #expect(item.lineRanges == [NSRange(location: 0, length: 5)])
+    }
+
+    @Test func expandedMessageReplacesTabsAndCarriageReturns() {
+        let builder = MessageTextBuilder(highlight: [])
+
+        let item = builder.expandedMessage(message: "a\tb", body: "c\r\nd\re", style: nil, columns: 80, maxLines: 10)
+
+        #expect(item.text.string == "a    b\nc\nd\ne")
+        #expect(item.lineRanges.count == 4)
+        #expect(LogTextMetrics.wrappedLineCount("a\tb\nc\r\nd\re", columns: 80, maxLines: 10) == 4)
+        #expect(LogTextMetrics.wrappedLineCount("a\tb", columns: 2, maxLines: 10) == 3)
+    }
+
+    @Test func expandedMessageCutsAtTheLineLimit() {
+        let builder = MessageTextBuilder(highlight: [TextQuery("lines")].compactMap { $0 })
+
+        let item = builder.expandedMessage(message: "abcdefghij", body: "", style: nil, columns: 2, maxLines: 3)
+
+        #expect(item.text.string == "abcd\n… 3 more lines. The inspector shows the whole entry.")
+        #expect(item.lineRanges == [NSRange(location: 0, length: 2), NSRange(location: 2, length: 2), NSRange(location: 5, length: 52)])
+        #expect(item.text.spans == [
+            StyledText.Span(range: NSRange(location: 0, length: 4), style: .message(nil)),
+            StyledText.Span(range: NSRange(location: 5, length: 52), style: .preview)
+        ])
     }
 
     @Test func messageStyleComesFromLevelsThatColorTheMessage() {

@@ -14,6 +14,7 @@ public final class LogTablePresenter {
     @ObservationIgnored private let openSource: OpenSource
     @ObservationIgnored private var messageBuilder: MessageTextBuilder
     @ObservationIgnored private var collapser: RowCollapser?
+    @ObservationIgnored private let entryText: LogEntryText
 
     public var rowCount: Int { collapser?.rowCount ?? session.visible.count }
 
@@ -34,14 +35,13 @@ public final class LogTablePresenter {
         return Set(selected.compactMap(collapser.rowIndex(ofRecord:))).sorted()
     }
 
-    private static let maxExpandedCharacters = 40_000
-
     public init(session: LogSession, settings: AppSettings, copyEntries: CopyEntries, openSource: OpenSource) {
         self.session = session
         self.settings = settings
         self.copyEntries = copyEntries
         self.openSource = openSource
         self.messageBuilder = MessageTextBuilder(highlight: [])
+        self.entryText = LogEntryText(profile: session.profile)
     }
 
     public func start() {
@@ -79,27 +79,39 @@ public final class LogTablePresenter {
             isBookmarked: session.isBookmarked(record),
             isFindMatch: session.findMatchSet.contains(index),
             repeatCount: group.repeatCount,
-            repeatCountText: group.repeatCount.map { "×\($0)" } ?? "",
+            repeatCountText: group.repeatCount.map(Self.repeatCountText) ?? "",
             isGroupExpanded: group.isExpanded,
             isGroupMember: group.isMember
         )
     }
 
-    public func expandedMessage(at row: Int) -> StyledText? {
+    public func expandedMessage(at row: Int, columns: Int, maxLines: Int) -> ExpandedMessageItem? {
         guard let record = record(atRow: row) else { return nil }
-        let parts = LogEntryDetails.messageAndBody(session.text(of: record), record: record, profile: session.profile)
-        let text = parts.body.isEmpty ? parts.message : parts.message + "\n" + parts.body
+        let parts = messageAndBody(of: record)
         return messageBuilder.expandedMessage(
-            text: String(text.prefix(Self.maxExpandedCharacters)),
-            messageLength: parts.message.count,
-            style: MessageTextBuilder.messageStyle(of: record, in: session.profile)
+            message: parts.message,
+            body: parts.body,
+            style: MessageTextBuilder.messageStyle(of: record, in: session.profile),
+            columns: columns,
+            maxLines: maxLines
         )
     }
 
     public func lineCount(row: Int, columns: Int, maxLines: Int) -> Int {
         guard let record = record(atRow: row) else { return 1 }
         return session.content.withBytes(of: record) { bytes in
-            LogTextMetrics.wrappedLineCount(bytes, columns: columns, maxLines: maxLines)
+            entryText.wrappedLineCount(bytes, record: record, columns: columns, maxLines: maxLines)
+        }
+    }
+
+    public func groupIndent(atRow row: Int) -> GroupIndent {
+        switch collapser?.row(at: row) {
+        case .group(_, let indices, _):
+            .group(badge: Self.repeatCountText(indices.count))
+        case .member:
+            .member
+        case .single, nil:
+            .none
         }
     }
 
@@ -198,8 +210,16 @@ private extension LogTablePresenter {
         messageBuilder = MessageTextBuilder(highlight: session.filterState.highlightQueries)
     }
 
+    static func repeatCountText(_ count: Int) -> String {
+        "×\(count)"
+    }
+
     func record(atRow row: Int) -> LogRecord? {
         recordIndex(atRow: row).flatMap(session.record(at:))
+    }
+
+    func messageAndBody(of record: LogRecord) -> (message: String, body: String) {
+        session.content.withBytes(of: record) { entryText.messageAndBody($0, record: record) }
     }
 
     func groupState(atRow row: Int) -> (repeatCount: Int?, isExpanded: Bool, isMember: Bool) {
