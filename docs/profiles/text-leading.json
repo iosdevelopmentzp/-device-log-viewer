@@ -1,0 +1,30 @@
+{
+  "name": "Text log with leading metadata",
+  "discovery": {
+    "bundleIDPrefix": "com.example",
+    "logsPath": "Library/Application Support/Logs",
+    "fileExtension": "log",
+    "fileNamePrefix": ""
+  },
+  "framing": { "kind": "lines", "joinsUnrecognizedLines": true },
+  "entry": {
+    "kind": "leading",
+    "tokens": [
+      { "kind": "time", "required": true },
+      { "kind": "level", "open": "[", "close": "]", "required": true },
+      { "kind": "delimited", "attribute": "category", "open": "[", "close": "]" },
+      { "kind": "list", "attribute": "tags", "prefix": "#" }
+    ]
+  },
+  "timestamp": { "format": "yyyy-MM-dd HH:mm:ss.SSS", "timeZone": "Europe/Kyiv" },
+  "levels": [
+    { "id": "debug", "codes": ["DEBUG", "TRACE"], "title": "Debug", "style": "secondary" },
+    { "id": "info", "codes": ["INFO"], "title": "Info", "style": "blue" },
+    { "id": "warning", "codes": ["WARN", "WARNING"], "title": "Warning", "style": "orange", "highlightsRow": true },
+    { "id": "error", "codes": ["ERROR"], "title": "Error", "style": "red", "alerts": true, "highlightsRow": true, "colorsMessage": true }
+  ],
+  "attributes": [
+    { "id": "category", "title": "Category", "columnWidth": 110 },
+    { "id": "tags", "title": "Tags", "kind": "list", "prefix": "#", "columnWidth": 110 }
+  ]
+}

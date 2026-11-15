@@ -1,0 +1,2 @@
+Packages/LogReaderKit/Sources/LogReaderKit/Application/Session/LogSessionFactory.swift
+LogReader/Features/Main/StatusBar.swift

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swift test *)",
+      "Bash(swift build *)",
+      "Bash(xcodebuild *)",
+      "Bash(Scripts/check-layers.sh)",
+      "Bash(bash Scripts/check-layers.sh)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(wc *)"
+    ]
+  }
+}
